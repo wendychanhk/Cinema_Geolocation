@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Cinema Location</title>
+</head>
+<body>
+	<h1> Which cinema is the closest to your location? Enter the cinemas you want to search for below. </h1>
+	<label>Cinema's Name </label><input type="text" value ="Vue" class="cinema_name"/>
+	<label>Cinema's latitude </label><input type="text" value = "40" class="cinema_latitude"/>
+	<label>Cinema's longitude </label><input type="text" value = "40" class="cinema_longitude"/>
+	<button class="submit" type="submit">SUBMIT</button>
+
+	<button id="location">The closest cinema to my current location</button>
+	<button id="clear-locations">Clear all cinemas!</button>
+
+	<ul id='list'> </ul>
+
+	<p id='closest'></p>
+
+
+	<div id='current_location'> </div>
+
+	<div id='closest_cinema_location'> </div>
+	
+
+
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script> 
+	<script>
+
+		$('#clear-locations').on('click', function(){
+			window.localStorage.removeItem("cinemas");
+			$('#list').empty(); 
+			$('#closest').empty(); 
+			$('#current_location').empty(); 
+			$('#closest_cinema_location').empty(); 
+
+		}); 
+
+
+		$('.submit').on('click', function(){
+			
+			$('#list').empty(); 
+
+			var requiredCinema = {
+				name: $('.cinema_name').val(),
+				latitude: $('.cinema_latitude').val(),
+				longitude: $('.cinema_longitude').val()
+			};
+
+
+			if (window.localStorage.getItem("cinemas")){ 
+
+
+				var list_cinemas = (JSON.parse(window.localStorage.getItem("cinemas"))); 
+
+			} else {
+
+				var list_cinemas = [];} 
+
+				
+				list_cinemas.push(requiredCinema);
+
+				window.localStorage.setItem("cinemas", JSON.stringify(list_cinemas)); 
+
+				var saved_cinemas = JSON.parse(window.localStorage.getItem("cinemas")); 
+
+				saved_cinemas.forEach(function(c){
+
+					$('#list').append('<li>'+ 'Name of Cinema: '+ c.name + ', latitude: '+ c.latitude + ', longitude: '+ c.longitude +'</li>')
+
+				}); 
+			});
+
+
+
+
+		if ("geolocation" in navigator) {
+			$('#location').on('click', function(){
+				navigator.geolocation.getCurrentPosition(function(position) {
+
+					var p = {
+						latitude: position.coords.latitude, 
+						longitude: position.coords.longitude 
+					}; 
+					$('#current_location').html('Your current location: ' + '<img src="https://maps.googleapis.com/maps/api/staticmap?center=' + p.latitude + ','+p.longitude+'&zoom=15&size=400x400">'); 
+
+					console.log(p.latitude +','+ p.longitude)
+
+					var array_distance = [];
+					var saved_cinemas = JSON.parse(window.localStorage.getItem("cinemas")); 
+					saved_cinemas.forEach(function(c){
+						var radlat1 = Math.PI * parseFloat(c.latitude)/180
+						var radlat2 = Math.PI * parseFloat(c.longitude)/180
+						var radlon1 = Math.PI * parseFloat(p.latitude)/180
+						var radlon2 = Math.PI * parseFloat(p.longitude)/180
+						var theta = parseFloat(c.longitude)-parseFloat(p.longitude)
+						var radtheta = Math.PI * theta/180
+						var dist = Math.sin(radlat1) * Math.sin(radlat2) + Math.cos(radlat1) * Math.cos(radlat2) * Math.cos(radtheta);
+						dist = Math.acos(dist)
+						dist = dist * 180/Math.PI
+						dist = dist * 60 * 1.853159
+
+						var obj = {cinema: c.name, cinema_longitude: c.longitude, cinema_latitude: c.latitude, cinema_distance: dist};
+
+						array_distance.push(obj) 
+						
+					}); 
+
+
+					var sorted_array = array_distance.sort(function(a,b) {
+						return parseFloat(a.cinema_distance) - parseFloat(b.cinema_distance)
+						});   //in JS, if not putting "return", it shows returns null, not sorting anything here
+
+					var closest_cinema = sorted_array[0]; 
+					$('#closest').html('Your closest cinema is: ' + closest_cinema.cinema); 
+
+
+
+					var url = ""
+
+					sorted_array.forEach(function(item){
+
+
+						url+="&markers=color:blue%7Clabel:C%7C" +item.cinema_latitude+","+item.cinema_longitude 
+
+					}); 
+
+
+
+
+					$('#closest_cinema_location').html('The location of closest cinema is: ' + '<img src="https://maps.googleapis.com/maps/api/staticmap?ce' + p.latitude + ','+ p.longitude+'&zoom=10&size=400x400' + url + '">'); 
+
+
+				}); 
+});
+}
+
+else {
+	alert("Geolocation is not available"); 
+}; 
+
+
+
+</script>
+</body>
+</html>
